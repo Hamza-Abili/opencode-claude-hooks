@@ -1,0 +1,72 @@
+{
+  "name": "@hamzaabili/opencode-claude-hooks",
+  "version": "0.1.0",
+  "description": "OpenCode V1 + V2 plugin: run Claude Code hooks natively, including settings, plugin, skill and subagent hooks, with trust, timeouts, structured decisions and a compatibility doctor. Zero runtime dependencies.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Hamza-Abili",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "opencode-v1",
+    "opencode-v2",
+    "claude-code",
+    "claude",
+    "hooks",
+    "hook",
+    "compatibility",
+    "migration",
+    "security",
+    "automation",
+    "agents"
+  ],
+  "homepage": "https://github.com/Hamza-Abili/opencode-claude-hooks#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hamza-Abili/opencode-claude-hooks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hamza-Abili/opencode-claude-hooks/issues"
+  },
+  "main": "./index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "opencode-claude-hooks": "./dist/cli.mjs"
+  },
+  "oc-plugin": [
+    "server"
+  ],
+  "exports": {
+    ".": "./index.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "scripts",
+    "index.ts",
+    "dist/cli.mjs",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "bun test",
+    "build": "bun run scripts/build.ts",
+    "ci": "bun run lint && bun run typecheck && bun run test && bun run build && bun run smoke",
+    "smoke": "bun scripts/smoke.ts",
+    "prepack": "bun run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "bun": ">=1.1.0",
+    "opencode": ">=1.19.5 <2 || >=2.2.1"
+  }
+}
