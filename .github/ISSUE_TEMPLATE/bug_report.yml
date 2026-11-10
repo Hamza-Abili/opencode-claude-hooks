@@ -1,0 +1,66 @@
+name: Bug report
+description: Something does not work as documented
+title: "bug: "
+labels: ["bug", "needs reproduction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not paste secrets or full `.env` files.
+        Run `npx @hamzaabili/opencode-claude-hooks doctor` and include the output.
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: opencode
+    attributes:
+      label: OpenCode generation
+      options:
+        - V2 (2.2.1+)
+        - V1 (1.19.5)
+    validations:
+      required: true
+  - type: input
+    id: opencode-version
+    attributes:
+      label: OpenCode version
+      placeholder: "2.2.6"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and shell
+      placeholder: "Ubuntu 24.04, bash"
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant Claude settings
+      description: Redact commands, URLs, tokens and paths you do not want public.
+      render: json
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Doctor output
+      description: Output of `npx @hamzaabili/opencode-claude-hooks doctor`.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true

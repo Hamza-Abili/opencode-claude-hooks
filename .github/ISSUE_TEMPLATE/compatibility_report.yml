@@ -1,0 +1,74 @@
+name: Compatibility report
+description: An event, matcher, handler or source does not map as expected
+title: "compat: "
+labels: ["compatibility", "needs reproduction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for gaps in the Claude Code mapping, not for crashes.
+        Include the exact event and the smallest settings file that reproduces it.
+        Redact commands, URLs, tokens and paths you do not want public.
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: opencode-version
+    attributes:
+      label: OpenCode version
+      placeholder: "2.2.6"
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Hook source
+      options:
+        - ~/.claude/settings.json
+        - project .claude/settings.json
+        - .claude/settings.local.json
+        - Claude plugin hooks
+        - Skill frontmatter
+        - Subagent frontmatter
+        - extra options.sources
+    validations:
+      required: true
+  - type: input
+    id: event
+    attributes:
+      label: Claude event
+      placeholder: "PreToolUse"
+    validations:
+      required: true
+  - type: input
+    id: handler
+    attributes:
+      label: Handler type
+      placeholder: "command"
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: Minimal settings
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Doctor output
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected mapping
+      description: Which OpenCode hook or decision did you expect?
+    validations:
+      required: true

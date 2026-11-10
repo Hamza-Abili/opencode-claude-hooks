@@ -247,6 +247,15 @@ not control.
   must affect the turn.
 - V1 cannot continue a Stop hook or prompt for trust; see the matrix above.
 
+## Support
+
+- Bugs: [open an issue](https://github.com/Hamza-Abili/opencode-claude-hooks/issues/new/choose)
+  with the bug template and include `doctor` output.
+- Mapping questions: use [Discussions](https://github.com/Hamza-Abili/opencode-claude-hooks/discussions),
+  not an issue.
+- Security: [private advisory](https://github.com/Hamza-Abili/opencode-claude-hooks/security/advisories/new),
+  never a public issue.
+
 ## Development
 
 ```sh
