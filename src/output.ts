@@ -76,7 +76,7 @@ function readOutput(value: unknown): RawHookOutput | undefined {
   };
 }
 
-/** Parse a JSON hook decision. Invalid JSON is an error, never a silent allow. */
+/** Parse a JSON hook decision. Invalid JSON returns undefined; callers decide. */
 export function parseHookJson(text: string): RawHookOutput | undefined {
   const candidate = stripFences(text);
   if (candidate.length === 0) return {};

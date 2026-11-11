@@ -115,6 +115,19 @@ describe("normalizeHandler", () => {
     expect((result as { onFailure?: string }).onFailure).toBeUndefined();
   });
 
+  test("keeps statusMessage for every supported handler", () => {
+    const handlers = [
+      { type: "command", command: "run" },
+      { type: "http", url: "https://example.com/hook" },
+      { type: "prompt", prompt: "judge" },
+    ];
+    for (const raw of handlers) {
+      expect(normalizeHandler({ ...raw, statusMessage: "checking" })).toMatchObject({
+        statusMessage: "checking",
+      });
+    }
+  });
+
   test("rejects command without command", () => {
     expect(normalizeHandler({ type: "command" }).type).toBe("unknown");
   });

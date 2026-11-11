@@ -17,8 +17,9 @@ committed to a repository you do not control.
   settings file. Project, local, plugin, skill and agent hooks are untrusted
   until approved.
 - `trust: "prompt"` asks through OpenCode's permission UI before the first run
-  of each hook (V2). A permission `evaluate` hook forces every `claude_hook`
-  action to `ask`, so a permissive `*` rule cannot silently approve a hook.
+  of each hook (V2). A permission `evaluate` hook raises every `claude_hook`
+  action to `ask` without downgrading an existing `deny`, so a permissive `*`
+  rule cannot silently approve a hook.
   The prompt shows a fingerprint resource; the summary is in the metadata.
   Approvals are stored in
   `~/.config/opencode/claude-hooks-trust.json` with mode `0600`, keyed by a
@@ -56,14 +57,18 @@ user can read.
 
 ## Execution limits
 
-- Per-hook timeout (default 600s, hard ceiling 3600s) with process-group kill.
+- Command hooks have a per-hook timeout (default 600s, hard ceiling 3600s)
+  with process-group kill. HTTP hooks use an abort signal. Prompt hooks are
+  capped at 30s by racing the provider call.
 - stdout/stderr and HTTP response bodies are read through a hard
   `maxOutputBytes` cap; oversized HTTP responses are cancelled early.
 - HTTP hooks disable redirects and can be limited with `httpAllowlist`.
 - HTTP header interpolation only reads variables listed in `allowedEnvVars`.
 - Stop-hook continuations are capped (`maxStopContinuations`, default 3).
-- Hook output is parsed as JSON; invalid JSON is a non-blocking error, never a
-  silent allow.
+- Command-hook stdout is parsed as JSON when valid. Invalid JSON on exit 0 is
+  treated as plain text, matching Claude Code; HTTP and prompt hooks reject
+  invalid JSON instead. A malformed deny decision is therefore non-blocking,
+  so test deny hooks.
 - Prompt hooks use Claude's native `{ok, reason, impossible}` schema. `ok: false`
   rejects the event; `Stop`/`SubagentStop` allow the stop when `impossible` is
   true. Malformed or unrecognized prompt responses are errors, never silent

@@ -75,6 +75,7 @@ export interface HttpHook {
   readonly headers?: Readonly<Record<string, string>>;
   readonly allowedEnvVars?: readonly string[];
   readonly timeout?: number;
+  readonly statusMessage?: string;
   readonly once?: boolean;
   readonly onFailure?: "continue" | "block";
   readonly if?: string;
@@ -85,6 +86,7 @@ export interface PromptHook {
   readonly prompt: string;
   readonly model?: string;
   readonly timeout?: number;
+  readonly statusMessage?: string;
   readonly once?: boolean;
   readonly onFailure?: "continue" | "block";
   readonly if?: string;

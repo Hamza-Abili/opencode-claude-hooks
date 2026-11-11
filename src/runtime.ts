@@ -30,6 +30,7 @@ import { firstLine, redact } from "./util.ts";
 import { VERSION } from "./version.ts";
 
 const CONCURRENCY = 8;
+const PROMPT_DEFAULT_TIMEOUT_SEC = 30;
 
 export interface RuntimeInput {
   readonly sources: readonly HookSource[];
@@ -196,11 +197,33 @@ export class HookRuntime {
     if (model === undefined) return { kind: "disabled" };
     const argumentsJson = JSON.stringify(payload, null, 2);
     const prompt = `${handler.prompt.includes("$ARGUMENTS") ? handler.prompt.split("$ARGUMENTS").join(argumentsJson) : `${handler.prompt}\n\nHook input JSON:\n${argumentsJson}`}\n\nReturn ONLY a JSON object for the Claude Code prompt-hook response schema: {"ok":true} to allow, or {"ok":false,"reason":"..."} to reject. No prose, no code fences.`;
+    const promptDefault = Math.min(
+      PROMPT_DEFAULT_TIMEOUT_SEC,
+      this.input.options.defaultTimeoutSec
+    );
+    const timeoutMs =
+      Math.min(handler.timeout ?? promptDefault, this.input.options.maxTimeoutSec) * 1000;
+    const timeout = AbortSignal.timeout(timeoutMs);
+    const controller = signal === undefined ? timeout : AbortSignal.any([timeout, signal]);
+    let onAbort: (() => void) | undefined;
     try {
-      const text = await this.input.host.generateText({ model, prompt, signal });
+      const generation = this.input.host.generateText({ model, prompt, signal: controller });
+      // The provider call cannot always be cancelled; do not leak a late rejection
+      // when the timeout wins the race.
+      void generation.catch(() => undefined);
+      const text = await Promise.race([
+        generation,
+        new Promise<never>((_, reject) => {
+          onAbort = () => reject(controller.reason ?? new Error("prompt hook timed out"));
+          if (controller.aborted) onAbort();
+          else controller.addEventListener("abort", onAbort, { once: true });
+        }),
+      ]);
       return { kind: "ok", text };
     } catch (error) {
       return { kind: "error", message: error instanceof Error ? error.message : String(error) };
+    } finally {
+      if (onAbort !== undefined) controller.removeEventListener("abort", onAbort);
     }
   }
 
@@ -251,7 +274,7 @@ export class HookRuntime {
       };
     }
 
-    if (handler.type === "command" && handler.statusMessage !== undefined) {
+    if (handler.statusMessage !== undefined) {
       this.input.host.status?.(handler.statusMessage);
     }
 

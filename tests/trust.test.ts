@@ -66,6 +66,23 @@ describe("hookSummary", () => {
     expect(summary).not.toContain("abcdefghijklmnop");
     expect(summary).toContain("[token]");
   });
+
+  test("does not print HTTP query secrets", () => {
+    const summary = hookSummary(
+      handler({
+        type: "http",
+        url: "https://example.com/hook?token=supersecret&mode=check",
+      })
+    );
+    expect(summary).toContain("https://example.com/hook");
+    expect(summary).toContain("?…");
+    expect(summary).not.toContain("supersecret");
+
+    const invalid = hookSummary(
+      handler({ type: "http", url: "https://exa mple.com/hook?token=supersecret" })
+    );
+    expect(invalid).not.toContain("supersecret");
+  });
 });
 
 describe("defaultTrustFile", () => {

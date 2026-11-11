@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.3
+
+Compatibility and hardening release.
+
+- Prompt hooks enforce their timeout (default 30s) even when the provider
+  cannot cancel the request.
+- `statusMessage` is honoured for command, HTTP and prompt hooks.
+- V1 maps a child session going idle to `SubagentStop` instead of `Stop`.
+- V2 `PostToolUseFailure` includes the `error` field in the hook payload.
+- The V2 permission evaluator never downgrades an existing `deny` to `ask`.
+- Trust and doctor summaries omit HTTP query strings so tokens are not shown.
+- `doctor --trust none|prompt` is parsed correctly and no longer consumes the
+  following flag. The built CLI entry point is detected under Node, Bun and
+  symlinked installs; smoke covers the built artifact under both runtimes.
+- Clarify that malformed JSON on command exit 0 is plain text, matching Claude
+  Code.
+
 ## 0.1.2
 
 Security fix.

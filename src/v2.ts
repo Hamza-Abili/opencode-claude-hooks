@@ -162,6 +162,8 @@ export async function setup(
       generate === undefined
         ? undefined
         : async ({ model, prompt }) => {
+            // experimental.generate.text has no cancellation signal; the
+            // runtime enforces the timeout by racing the call.
             const result = await generate({
               model: { providerID: model.providerID, id: model.modelID },
               prompt,
@@ -216,7 +218,7 @@ export async function setup(
   if (permission?.hook !== undefined) {
     disposables.push(
       await permission.hook("evaluate", (event) => {
-        if (event.action === "claude_hook") event.effect = "ask";
+        if (event.action === "claude_hook" && event.effect !== "deny") event.effect = "ask";
       })
     );
   }
@@ -384,6 +386,7 @@ export async function setup(
           String(event.id ?? "")
         ),
         tool_response: response,
+        ...(completed ? {} : { error: response }),
       },
       scopeFor(sessionID)
     );

@@ -337,13 +337,14 @@ export async function server(
       if (event.type === "session.idle") {
         const current = tracked(id);
         if (!current.started) return;
-        const result = await runtime.run(
-          "Stop",
-          stopPayload("Stop", scopeFor(id), directory, false),
-          scopeFor(id)
-        );
+        const isChild = current.parentID !== undefined;
+        const eventName = isChild ? "SubagentStop" : "Stop";
+        const payload = isChild
+          ? subagentPayload(eventName, scopeFor(id), directory, id, current.agent ?? "general")
+          : stopPayload(eventName, scopeFor(id), directory, false);
+        const result = await runtime.run(eventName, payload, scopeFor(id));
         if (result.decision.blocked || result.decision.stop) {
-          host.status?.("a Stop hook blocked this turn; V1 cannot continue automatically");
+          host.status?.(`a ${eventName} hook blocked this turn; V1 cannot continue automatically`);
         }
         return;
       }

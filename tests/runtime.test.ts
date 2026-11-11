@@ -538,6 +538,95 @@ describe("HookRuntime decisions", () => {
     expect(result.decision.permission).toBeUndefined();
   });
 
+  test("prompt hooks time out even when the model ignores the signal", async () => {
+    const { runtime } = await setup(
+      [
+        source(
+          [
+            {
+              event: "PreToolUse",
+              group: {
+                hooks: [
+                  handler({
+                    type: "prompt",
+                    prompt: "judge",
+                    timeout: 0.05,
+                    onFailure: "block",
+                  }),
+                ],
+              },
+            },
+          ],
+          { trustedByDefault: true }
+        ),
+      ],
+      { allowPromptHooks: true },
+      {
+        defaultModel: async () => ({ providerID: "test", modelID: "test" }),
+        generateText: async () => new Promise<string>(() => undefined),
+      }
+    );
+    const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(result.results[0]?.status).toBe("error");
+    expect(result.decision.blocked).toBe(true);
+  });
+
+  test("a synchronous prompt failure is returned as an error", async () => {
+    const { runtime } = await setup(
+      [
+        source(
+          [
+            {
+              event: "PreToolUse",
+              group: {
+                hooks: [handler({ type: "prompt", prompt: "judge", onFailure: "block" })],
+              },
+            },
+          ],
+          { trustedByDefault: true }
+        ),
+      ],
+      { allowPromptHooks: true },
+      {
+        defaultModel: async () => ({ providerID: "test", modelID: "test" }),
+        generateText: () => {
+          throw new Error("sync boom");
+        },
+      }
+    );
+    const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(result.results[0]?.status).toBe("error");
+    expect(result.results[0]?.message).toContain("sync boom");
+    expect(result.decision.blocked).toBe(true);
+  });
+
+  test("statusMessage reaches the host for prompt hooks", async () => {
+    const seen: string[] = [];
+    const { runtime } = await setup(
+      [
+        source(
+          [
+            {
+              event: "PreToolUse",
+              group: {
+                hooks: [handler({ type: "prompt", prompt: "judge", statusMessage: "judging" })],
+              },
+            },
+          ],
+          { trustedByDefault: true }
+        ),
+      ],
+      { allowPromptHooks: true },
+      {
+        status: (message: string) => seen.push(message),
+        defaultModel: async () => ({ providerID: "test", modelID: "test" }),
+        generateText: async () => '{"ok":true}',
+      }
+    );
+    await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(seen).toContain("judging");
+  });
+
   test("prompt hook failures apply onFailure", async () => {
     const { runtime } = await setup(
       [

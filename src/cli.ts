@@ -4,8 +4,10 @@
  * which Claude hook sources would load.
  */
 
+import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseOptions } from "./options.ts";
 import { HookRuntime } from "./runtime.ts";
 import { discover } from "./sources.ts";
@@ -23,7 +25,7 @@ interface Args {
   plugins: string[];
 }
 
-function parseArgs(argv: readonly string[]): Args {
+export function parseArgs(argv: readonly string[]): Args {
   const output: Args = {
     command: "doctor",
     json: false,
@@ -59,11 +61,11 @@ function parseArgs(argv: readonly string[]): Args {
       case "--home":
         output.home = resolve(next());
         break;
-      case "--trust":
-        if (next() === "all") output.trust = "all";
-        else if (next() === "none") output.trust = "none";
-        else output.trust = "user";
+      case "--trust": {
+        const mode = next();
+        output.trust = mode === "all" || mode === "none" || mode === "prompt" ? mode : "user";
         break;
+      }
       case "--trusted":
         output.trusted.push(next());
         break;
@@ -90,7 +92,7 @@ function usage(): string {
     "",
     "  --directory, -C <path>  project directory (default: cwd)",
     "  --home <path>           home directory (default: $HOME)",
-    "  --trust <mode>          user | all | none (default: user)",
+    "  --trust <mode>          user | all | none | prompt (default: user)",
     "  --trusted <value>       trusted fingerprint or source id (repeatable)",
     "  --source <path>         extra settings file or directory (repeatable)",
     "  --plugin <path>         extra Claude plugin directory (repeatable)",
@@ -139,4 +141,14 @@ async function main(): Promise<void> {
   console.log(args.json ? JSON.stringify(runtime.report(), null, 2) : runtime.describe());
 }
 
-await main();
+function isEntryPoint(): boolean {
+  const invoked = process.argv[1];
+  if (invoked === undefined) return false;
+  try {
+    return realpathSync(resolve(invoked)) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isEntryPoint()) await main();

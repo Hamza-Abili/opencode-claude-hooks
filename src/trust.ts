@@ -75,8 +75,16 @@ export function hookSummary(handler: HookHandler): string {
       const args = handler.args === undefined ? "" : ` ${handler.args.join(" ")}`;
       return firstLine(redact(`${handler.command}${args}`));
     }
-    case "http":
-      return `HTTP POST ${handler.url}`;
+    case "http": {
+      try {
+        const url = new URL(handler.url);
+        return `HTTP POST ${url.origin}${url.pathname}${url.search.length > 0 ? "?…" : ""}`;
+      } catch {
+        const cut = handler.url.search(/[?#]/);
+        const safe = cut === -1 ? handler.url : `${handler.url.slice(0, cut)}?…`;
+        return `HTTP POST ${redact(safe)}`;
+      }
+    }
     case "prompt":
       return `prompt hook: ${firstLine(redact(handler.prompt))}`;
     default:

@@ -48,12 +48,14 @@ function onFailure(value: unknown): "continue" | "block" | undefined {
 function base(value: Record<string, unknown>): {
   if?: string;
   timeout?: number;
+  statusMessage?: string;
   once?: boolean;
   onFailure?: "continue" | "block";
 } {
   return {
     if: stringValue(value.if),
     timeout: positive(value.timeout),
+    statusMessage: stringValue(value.statusMessage),
     once: value.once === true ? true : undefined,
     onFailure: onFailure(value.onFailure),
   };
@@ -76,7 +78,6 @@ function normalizeCommand(value: Record<string, unknown>): CommandHook | Unsuppo
     async: value.async === true ? true : undefined,
     asyncRewake: value.asyncRewake === true ? true : undefined,
     shell,
-    statusMessage: stringValue(value.statusMessage),
     ...base(value),
   };
 }

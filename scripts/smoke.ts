@@ -61,6 +61,27 @@ const report = JSON.parse(output) as {
 };
 if (report.sources.length !== 1) throw new Error("expected one source");
 if (report.unsupportedHandlers.length !== 1) throw new Error("expected one unsupported handler");
+
+const cli = join(import.meta.dir, "..", "dist", "cli.mjs");
+const runtimes: Array<{ label: string; path: string }> = [{ label: "bun", path: process.execPath }];
+const node = Bun.which("node");
+if (node !== null) runtimes.push({ label: "node", path: node });
+for (const runtime of runtimes) {
+  const check = Bun.spawn([runtime.path, cli, "version"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const version = await new Response(check.stdout).text();
+  const versionError = await new Response(check.stderr).text();
+  const versionCode = await check.exited;
+  if (versionCode !== 0) {
+    console.error(versionError);
+    throw new Error(`${runtime.label} cli exited ${versionCode}`);
+  }
+  if (!version.includes("opencode-claude-hooks")) {
+    throw new Error(`${runtime.label} cli output is missing the version prefix`);
+  }
+}
 console.log(
-  `smoke ok (${report.sources.length} source, ${report.unsupportedHandlers.length} unsupported handler)`
+  `smoke ok (${report.sources.length} source, ${report.unsupportedHandlers.length} unsupported handler; cli ${runtimes.map((runtime) => runtime.label).join("+")})`
 );

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { readTextFile } from "../src/util.ts";
 import { setup } from "../src/v2.ts";
 import { tempDir, writeJson } from "./helpers.ts";
 
@@ -340,6 +341,35 @@ describe("V2 adapter", () => {
     expect(failure.message).toContain("retry it");
   });
 
+  test("PostToolUseFailure sends the error field", async () => {
+    const { fake, directory } = await setupContext({
+      hooks: {
+        PostToolUseFailure: [
+          {
+            hooks: [{ type: "command", command: "cat > post-failure-payload.json" }],
+          },
+        ],
+      },
+    });
+    const event: Record<string, unknown> = {
+      sessionID: "root",
+      agent: "build",
+      messageID: "m",
+      id: "c",
+      tool: "shell",
+      input: { command: "ls" },
+      status: "error",
+      error: { message: "boom" },
+    };
+    await fake.hooks.get("execute.after")?.(event);
+    const payload = JSON.parse(
+      (await readTextFile(join(directory, "post-failure-payload.json"))) ?? "{}"
+    ) as Record<string, unknown>;
+    expect(payload.hook_event_name).toBe("PostToolUseFailure");
+    expect(payload.tool_response).toBe("boom");
+    expect(payload.error).toBe("boom");
+  });
+
   test("Stop hook injects a synthetic continue", async () => {
     const { fake } = await setupContext({
       hooks: {
@@ -368,6 +398,10 @@ describe("V2 adapter", () => {
     const event: Record<string, unknown> = { action: "claude_hook", effect: "allow" };
     await evaluate?.(event);
     expect(event.effect).toBe("ask");
+
+    const denied: Record<string, unknown> = { action: "claude_hook", effect: "deny" };
+    await evaluate?.(denied);
+    expect(denied.effect).toBe("deny");
   });
 
   test("PreToolUse ask carries the reason in metadata", async () => {

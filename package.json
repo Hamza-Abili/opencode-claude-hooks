@@ -1,6 +1,6 @@
 {
   "name": "@hamzaabili/opencode-claude-hooks",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "OpenCode V1 + V2 plugin: run Claude Code hooks natively, including settings, plugin, skill and subagent hooks, with trust, timeouts, structured decisions and a compatibility doctor. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -56,8 +56,8 @@
     "format": "biome check --write .",
     "test": "bun test",
     "build": "bun run scripts/build.ts",
-    "ci": "bun run lint && bun run typecheck && bun run test && bun run build && bun run smoke",
-    "smoke": "bun scripts/smoke.ts",
+    "ci": "bun run lint && bun run typecheck && bun run test && bun run smoke",
+    "smoke": "bun run scripts/build.ts && bun run scripts/smoke.ts",
     "prepack": "bun run build"
   },
   "devDependencies": {

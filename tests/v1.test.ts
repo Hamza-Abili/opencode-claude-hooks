@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { readTextFile } from "../src/util.ts";
 import { server } from "../src/v1.ts";
 import { tempDir, writeJson, writeText } from "./helpers.ts";
 
@@ -278,6 +279,25 @@ describe("V1 adapter", () => {
     });
     await hooks["experimental.chat.system.transform"]?.({ sessionID: "s" }, { system: [] });
     await hooks.event?.({ event: { type: "session.idle", properties: { sessionID: "s" } } });
+  });
+
+  test("SubagentStop hooks run when a child session goes idle", async () => {
+    const { hooks, directory } = await setup({
+      hooks: {
+        SubagentStop: [{ hooks: [{ type: "command", command: "printf x >> subagent-stop.txt" }] }],
+        Stop: [{ hooks: [{ type: "command", command: "printf x >> stop.txt" }] }],
+      },
+    });
+    await hooks.event?.({
+      event: {
+        type: "session.created",
+        properties: { info: { id: "child", parentID: "root", agent: "general" } },
+      },
+    });
+    await hooks["experimental.chat.system.transform"]?.({ sessionID: "child" }, { system: [] });
+    await hooks.event?.({ event: { type: "session.idle", properties: { sessionID: "child" } } });
+    expect(await readTextFile(join(directory, "subagent-stop.txt"))).toBe("x");
+    expect(await readTextFile(join(directory, "stop.txt"))).toBeUndefined();
   });
 
   test("SessionEnd fires on session.deleted", async () => {
