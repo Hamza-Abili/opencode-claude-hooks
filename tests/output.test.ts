@@ -255,6 +255,53 @@ describe("mergeDecisions", () => {
     expect(hard.reason).toBe("boom");
   });
 
+  test("onFailure block covers a nonzero exit that printed JSON", () => {
+    const decision = mergeDecisions("PreToolUse", [
+      input({
+        exitCode: 9,
+        onFailure: "block",
+        output: { permissionDecision: "allow" },
+      }),
+    ]);
+    expect(decision.blocked).toBe(true);
+    expect(decision.permission).toBeUndefined();
+    expect(decision.reason).toBe("PreToolUse hook failed (exit 9)");
+  });
+
+  test("nonzero JSON keeps its decision without onFailure block", () => {
+    const decision = mergeDecisions("PreToolUse", [
+      input({ exitCode: 9, output: { permissionDecision: "allow" } }),
+    ]);
+    expect(decision.blocked).toBe(false);
+    expect(decision.permission).toBe("allow");
+  });
+
+  test("onFailure block ignores a successful exit", () => {
+    const decision = mergeDecisions("PreToolUse", [
+      input({
+        exitCode: 0,
+        onFailure: "block",
+        output: { permissionDecision: "allow" },
+      }),
+    ]);
+    expect(decision.blocked).toBe(false);
+    expect(decision.permission).toBe("allow");
+  });
+
+  test("exit 2 keeps its own block reason under onFailure block", () => {
+    const decision = mergeDecisions("PreToolUse", [
+      input({
+        status: "blocked",
+        exitCode: 2,
+        onFailure: "block",
+        output: { decision: "block", reason: "hard block" },
+      }),
+    ]);
+    expect(decision.blocked).toBe(true);
+    expect(decision.permission).toBe("deny");
+    expect(decision.reason).toBe("hard block");
+  });
+
   test("untrusted and skipped results are ignored", () => {
     const decision = mergeDecisions("PreToolUse", [
       input({ status: "untrusted", message: "no" }),

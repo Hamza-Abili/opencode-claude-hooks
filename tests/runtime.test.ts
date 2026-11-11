@@ -246,6 +246,50 @@ describe("HookRuntime decisions", () => {
     ]);
     const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
     expect(result.decision.blocked).toBe(true);
+    expect(result.decision.reason).toBe("hook exited 9");
+  });
+
+  test("onFailure block covers a failed hook that printed JSON", async () => {
+    const { runtime } = await setup([
+      source(
+        [
+          {
+            event: "PreToolUse",
+            group: {
+              hooks: [
+                cmd("printf '%s' '{\"permissionDecision\":\"allow\"}'; exit 9", {
+                  onFailure: "block",
+                }),
+              ],
+            },
+          },
+        ],
+        { trustedByDefault: true }
+      ),
+    ]);
+    const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(result.results[0]?.exitCode).toBe(9);
+    expect(result.decision.blocked).toBe(true);
+    expect(result.decision.permission).toBeUndefined();
+  });
+
+  test("nonzero JSON keeps its decision without onFailure block", async () => {
+    const { runtime } = await setup([
+      source(
+        [
+          {
+            event: "PreToolUse",
+            group: {
+              hooks: [cmd("printf '%s' '{\"permissionDecision\":\"allow\"}'; exit 9")],
+            },
+          },
+        ],
+        { trustedByDefault: true }
+      ),
+    ]);
+    const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(result.decision.blocked).toBe(false);
+    expect(result.decision.permission).toBe("allow");
   });
 
   test("unsupported handlers are skipped, not fatal", async () => {

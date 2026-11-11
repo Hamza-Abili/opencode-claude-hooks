@@ -398,6 +398,7 @@ export class HookRuntime {
         status: result.status,
         output: result.output,
         message: result.message,
+        exitCode: result.exitCode,
         onFailure,
       });
     }

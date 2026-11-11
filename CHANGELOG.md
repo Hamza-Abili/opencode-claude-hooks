@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+Security fix.
+
+- `onFailure: "block"` is no longer bypassed when a command hook prints valid
+  JSON and exits with a status other than 0 or 2. The blocking failure policy
+  now wins over the hook's JSON decision. Exit 0 and exit 2 keep their existing
+  behaviour, and nonzero-exit JSON remains non-blocking when no blocking
+  policy is set.
+
 ## 0.1.0
 
 First release.

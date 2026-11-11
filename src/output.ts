@@ -104,7 +104,7 @@ export function parseCommandOutput(result: ExecResult): ParsedOutput {
         message:
           result.exitCode === 0
             ? undefined
-            : firstLine(`hook exited ${result.exitCode}; its JSON decision was applied`),
+            : firstLine(`hook exited ${result.exitCode}; JSON output parsed`),
       };
     }
   }
@@ -158,6 +158,7 @@ export interface DecisionInput {
   readonly status: HandlerStatus;
   readonly output?: RawHookOutput;
   readonly message?: string;
+  readonly exitCode?: number;
   readonly onFailure?: "continue" | "block";
 }
 
@@ -170,6 +171,19 @@ export function mergeDecisions(event: HookEventName, inputs: readonly DecisionIn
   const decision = emptyDecision();
   const reasons: string[] = [];
   for (const input of inputs) {
+    // A command hook that prints JSON keeps its decision, but it is still a
+    // failed run when it exits with anything other than 0 or 2. An explicit
+    // blocking failure policy must win over that JSON.
+    const failedExit = input.exitCode !== undefined && input.exitCode !== 0 && input.exitCode !== 2;
+    if (input.onFailure === "block" && failedExit) {
+      decision.blocked = true;
+      reasons.push(
+        input.status === "success" || input.message === undefined
+          ? `${input.event} hook failed (exit ${input.exitCode})`
+          : input.message
+      );
+      continue;
+    }
     if (input.status === "error" || input.status === "timeout") {
       if (input.onFailure === "block") {
         decision.blocked = true;

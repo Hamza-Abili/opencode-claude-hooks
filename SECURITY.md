@@ -64,7 +64,9 @@ user can read.
 - Stop-hook continuations are capped (`maxStopContinuations`, default 3).
 - Hook output is parsed as JSON; invalid JSON is a non-blocking error, never a
   silent allow.
-- A hook that fails is non-blocking unless `onFailure: "block"` is set.
+- A hook that fails is non-blocking unless `onFailure: "block"` is set. A
+  blocking policy applies to any command exit other than 0 or 2, even when the
+  hook printed JSON.
 
 ## Data handling
 
