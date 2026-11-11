@@ -305,6 +305,41 @@ describe("V2 adapter", () => {
     expect((event.result as { content: string }).content).toContain("lint says hi");
   });
 
+  test("PostToolUseFailure appends the block reason to the tool error", async () => {
+    class FakeToolError extends Error {
+      readonly _tag = "Tool.Error";
+    }
+    const { fake } = await setupContext({
+      hooks: {
+        PostToolUseFailure: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: 'printf \'%s\' \'{"decision":"block","reason":"retry it"}\'',
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const failure = new FakeToolError("boom");
+    const event: Record<string, unknown> = {
+      sessionID: "root",
+      agent: "build",
+      messageID: "m",
+      id: "c",
+      tool: "shell",
+      input: { command: "ls" },
+      status: "error",
+      error: failure,
+    };
+    await fake.hooks.get("execute.after")?.(event);
+    expect(event.error).toBe(failure);
+    expect(failure.message).toContain("boom");
+    expect(failure.message).toContain("retry it");
+  });
+
   test("Stop hook injects a synthetic continue", async () => {
     const { fake } = await setupContext({
       hooks: {

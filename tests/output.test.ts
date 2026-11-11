@@ -166,11 +166,50 @@ describe("parseHttpOutput", () => {
 });
 
 describe("parsePromptOutput", () => {
-  test("parses fenced JSON", () => {
-    expect(parsePromptOutput('```json\n{"decision":"block"}\n```').output?.decision).toBe("block");
+  test("parses the native ok:false response", () => {
+    const parsed = parsePromptOutput('{"ok":false,"reason":"REGRESSION_DENY"}');
+    expect(parsed.status).toBe("success");
+    expect(parsed.output?.ok).toBe(false);
+    expect(parsed.output?.reason).toBe("REGRESSION_DENY");
   });
 
-  test("rejects prose", () => {
+  test("parses the native ok:true response", () => {
+    const parsed = parsePromptOutput('```json\n{"ok":true}\n```');
+    expect(parsed.status).toBe("success");
+    expect(parsed.output?.ok).toBe(true);
+  });
+
+  test("ok:false without a reason still rejects", () => {
+    const parsed = parsePromptOutput('{"ok":false}');
+    expect(parsed.status).toBe("success");
+    expect(parsed.output?.ok).toBe(false);
+    expect(parsed.output?.reason).toBe("rejected by prompt hook");
+  });
+
+  test("keeps command-style JSON as a compatibility fallback", () => {
+    expect(parsePromptOutput('{"decision":"block"}').output?.decision).toBe("block");
+  });
+
+  test("rejects an unrecognized object instead of allowing", () => {
+    expect(parsePromptOutput('{"foo":"bar"}').status).toBe("error");
+    expect(parsePromptOutput('{"ok":"yes"}').status).toBe("error");
+    expect(parsePromptOutput('{"ok":0,"decision":"approve"}').status).toBe("error");
+    expect(parsePromptOutput('{"continue":"yes"}').status).toBe("error");
+    expect(parsePromptOutput("{}").status).toBe("error");
+  });
+
+  test("does not let a malformed ok field fall back to an allow", () => {
+    const parsed = parsePromptOutput('{"ok":"false","permissionDecision":"allow"}');
+    expect(parsed.status).toBe("error");
+    const decision = mergeDecisions("PreToolUse", [
+      input({ status: parsed.status, message: parsed.message, onFailure: "block" }),
+    ]);
+    expect(decision.blocked).toBe(true);
+    expect(decision.permission).toBeUndefined();
+  });
+
+  test("rejects empty output and prose", () => {
+    expect(parsePromptOutput("").status).toBe("error");
     expect(parsePromptOutput("I think you should block it").status).toBe("error");
   });
 });
@@ -236,6 +275,44 @@ describe("mergeDecisions", () => {
     ]);
     expect(decision.blocked).toBe(true);
     expect(decision.reason).toBe("more");
+  });
+
+  test("prompt ok:false denies PreToolUse without onFailure", () => {
+    const decision = mergeDecisions("PreToolUse", [
+      input({ output: { ok: false, reason: "REGRESSION_DENY" } }),
+    ]);
+    expect(decision.blocked).toBe(true);
+    expect(decision.permission).toBe("deny");
+    expect(decision.reason).toBe("REGRESSION_DENY");
+  });
+
+  test("prompt ok:true leaves the decision unchanged", () => {
+    const decision = mergeDecisions("PreToolUse", [input({ output: { ok: true } })]);
+    expect(decision.blocked).toBe(false);
+    expect(decision.permission).toBeUndefined();
+  });
+
+  test("prompt ok:false blocks Stop unless impossible", () => {
+    const stop = mergeDecisions("Stop", [
+      input({ event: "Stop", output: { ok: false, reason: "more" } }),
+    ]);
+    expect(stop.blocked).toBe(true);
+    expect(stop.reason).toBe("more");
+
+    const impossible = mergeDecisions("Stop", [
+      input({ event: "Stop", output: { ok: false, reason: "never", impossible: true } }),
+    ]);
+    expect(impossible.blocked).toBe(false);
+  });
+
+  test("prompt ok:false blocks UserPromptSubmit, PostToolUse and PostToolUseFailure", () => {
+    for (const event of ["UserPromptSubmit", "PostToolUse", "PostToolUseFailure"] as const) {
+      const decision = mergeDecisions(event, [
+        input({ event, output: { ok: false, reason: "review" } }),
+      ]);
+      expect(decision.blocked).toBe(true);
+      expect(decision.reason).toBe("review");
+    }
   });
 
   test("PostToolUse block blocks the result", () => {

@@ -195,7 +195,7 @@ export class HookRuntime {
     const model = await this.modelFor(handler);
     if (model === undefined) return { kind: "disabled" };
     const argumentsJson = JSON.stringify(payload, null, 2);
-    const prompt = `${handler.prompt.includes("$ARGUMENTS") ? handler.prompt.split("$ARGUMENTS").join(argumentsJson) : `${handler.prompt}\n\nHook input JSON:\n${argumentsJson}`}\n\nReturn ONLY a JSON object for the Claude Code hook output schema. No prose, no code fences.`;
+    const prompt = `${handler.prompt.includes("$ARGUMENTS") ? handler.prompt.split("$ARGUMENTS").join(argumentsJson) : `${handler.prompt}\n\nHook input JSON:\n${argumentsJson}`}\n\nReturn ONLY a JSON object for the Claude Code prompt-hook response schema: {"ok":true} to allow, or {"ok":false,"reason":"..."} to reject. No prose, no code fences.`;
     try {
       const text = await this.input.host.generateText({ model, prompt, signal });
       return { kind: "ok", text };

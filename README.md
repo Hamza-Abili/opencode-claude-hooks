@@ -162,7 +162,7 @@ never silently dropped.
 | --- | --- | --- |
 | `command` | yes | Shell or exec form (`args`), `timeout`, `statusMessage`, `once`, `async`, `onFailure`, `if`. JSON on stdin. |
 | `http` | yes | POST JSON, header env interpolation, host allowlist, no redirects, timeout. |
-| `prompt` | V2 only | Opt-in with `allowPromptHooks`; uses `ctx.experimental.generate.text`. |
+| `prompt` | V2 only | Opt-in with `allowPromptHooks`; native `{ok, reason, impossible}` schema; uses `ctx.experimental.generate.text`. |
 | `mcp_tool` | no | Needs an MCP tool dispatcher that the plugin API does not expose. |
 | `agent` | no | Needs a nested agent runner. |
 

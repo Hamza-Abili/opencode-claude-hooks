@@ -484,6 +484,60 @@ describe("HookRuntime decisions", () => {
     expect(result.decision.reason).toBe("judged");
   });
 
+  test("prompt hooks reject the native ok:false response", async () => {
+    let seen = "";
+    const { runtime } = await setup(
+      [
+        source(
+          [
+            {
+              event: "PreToolUse",
+              group: { hooks: [handler({ type: "prompt", prompt: "judge $ARGUMENTS" })] },
+            },
+          ],
+          { trustedByDefault: true }
+        ),
+      ],
+      { allowPromptHooks: true },
+      {
+        defaultModel: async () => ({ providerID: "test", modelID: "test" }),
+        generateText: async ({ prompt }: { prompt: string }) => {
+          seen = prompt;
+          return '{"ok":false,"reason":"REGRESSION_DENY"}';
+        },
+      }
+    );
+    const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(seen).toContain('"ok":true');
+    expect(result.decision.blocked).toBe(true);
+    expect(result.decision.permission).toBe("deny");
+    expect(result.decision.reason).toBe("REGRESSION_DENY");
+  });
+
+  test("prompt hooks allow the native ok:true response", async () => {
+    const { runtime } = await setup(
+      [
+        source(
+          [
+            {
+              event: "PreToolUse",
+              group: { hooks: [handler({ type: "prompt", prompt: "judge" })] },
+            },
+          ],
+          { trustedByDefault: true }
+        ),
+      ],
+      { allowPromptHooks: true },
+      {
+        defaultModel: async () => ({ providerID: "test", modelID: "test" }),
+        generateText: async () => '{"ok":true}',
+      }
+    );
+    const result = await runtime.run("PreToolUse", { tool_name: "Bash", tool_input: {} }, scope);
+    expect(result.decision.blocked).toBe(false);
+    expect(result.decision.permission).toBeUndefined();
+  });
+
   test("prompt hook failures apply onFailure", async () => {
     const { runtime } = await setup(
       [

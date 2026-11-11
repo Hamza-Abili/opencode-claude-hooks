@@ -1,6 +1,6 @@
 {
   "name": "@hamzaabili/opencode-claude-hooks",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OpenCode V1 + V2 plugin: run Claude Code hooks natively, including settings, plugin, skill and subagent hooks, with trust, timeouts, structured decisions and a compatibility doctor. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",

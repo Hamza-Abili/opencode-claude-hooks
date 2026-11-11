@@ -234,6 +234,10 @@ export interface RawHookOutput {
   readonly additionalContext?: string;
   readonly customInstructions?: string;
   readonly retry?: boolean;
+  /** Native prompt-hook response: true allows, false rejects. */
+  readonly ok?: boolean;
+  /** Native prompt-hook response: only Stop/SubagentStop honor it. */
+  readonly impossible?: boolean;
 }
 
 export interface Decision {

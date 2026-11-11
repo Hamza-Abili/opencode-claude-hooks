@@ -31,6 +31,23 @@ function stripFences(text: string): string {
   return fence === null ? trimmed : (fence[1] ?? "").trim();
 }
 
+const PROMPT_FALLBACK_FIELDS: ReadonlyArray<keyof RawHookOutput> = [
+  "continue",
+  "stopReason",
+  "suppressOutput",
+  "systemMessage",
+  "decision",
+  "permissionDecision",
+  "updatedInput",
+  "additionalContext",
+  "customInstructions",
+  "retry",
+];
+
+function hasPromptFallback(output: RawHookOutput): boolean {
+  return PROMPT_FALLBACK_FIELDS.some((key) => output[key] !== undefined);
+}
+
 function readOutput(value: unknown): RawHookOutput | undefined {
   if (!isObject(value)) return undefined;
   const specific = isObject(value.hookSpecificOutput) ? value.hookSpecificOutput : {};
@@ -137,9 +154,46 @@ export function parseHttpOutput(result: HttpResult): ParsedOutput {
   return { status: "success", output };
 }
 
+/**
+ * Prompt hooks use Claude's native `ok`/`reason`/`impossible` schema, not the
+ * command-hook output schema. Keep command-style JSON as a compatibility
+ * fallback, but never treat an unrecognized object as a silent allow.
+ */
 export function parsePromptOutput(text: string): ParsedOutput {
-  const output = parseHookJson(text);
-  if (output === undefined) return { status: "error", message: "prompt hook did not return JSON" };
+  const candidate = stripFences(text);
+  if (candidate.length === 0) {
+    return { status: "error", message: "prompt hook returned no decision" };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch {
+    return { status: "error", message: "prompt hook did not return JSON" };
+  }
+  if (!isObject(parsed)) {
+    return { status: "error", message: "prompt hook returned a non-object decision" };
+  }
+  if (Object.hasOwn(parsed, "ok")) {
+    if (typeof parsed.ok !== "boolean") {
+      return { status: "error", message: "prompt hook returned an invalid ok field" };
+    }
+    const reason = stringValue(parsed.reason)?.trim();
+    return {
+      status: "success",
+      output: {
+        ok: parsed.ok,
+        impossible: booleanValue(parsed.impossible),
+        reason:
+          parsed.ok === false && (reason === undefined || reason.length === 0)
+            ? "rejected by prompt hook"
+            : reason,
+      },
+    };
+  }
+  const output = readOutput(parsed);
+  if (output === undefined || !hasPromptFallback(output)) {
+    return { status: "error", message: "prompt hook returned an unrecognized decision" };
+  }
   return { status: "success", output };
 }
 
@@ -193,6 +247,18 @@ export function mergeDecisions(event: HookEventName, inputs: readonly DecisionIn
     }
     if (input.status !== "success" && input.status !== "blocked") continue;
     const output = input.output ?? {};
+    if (output.ok !== undefined) {
+      if (output.ok === false) {
+        const impossibleStop =
+          output.impossible === true && (event === "Stop" || event === "SubagentStop");
+        if (!impossibleStop) {
+          decision.blocked = true;
+          if (event === "PreToolUse") decision.permission = "deny";
+          reasons.push(output.reason ?? `${event} prompt hook rejected the action`);
+        }
+      }
+      continue;
+    }
     if (output.continue === false) {
       decision.stop = true;
       decision.stopReason =

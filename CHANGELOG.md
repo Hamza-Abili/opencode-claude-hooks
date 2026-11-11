@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2
+
+Security fix.
+
+- Prompt hooks now honour Claude's native `{ok, reason, impossible}` response
+  schema. `ok: false` rejects the event instead of becoming a successful no-op,
+  and `Stop`/`SubagentStop` honour `impossible: true`. Unrecognized or
+  malformed prompt responses are errors, never silent allows. Command-style
+  prompt responses remain supported as a compatibility fallback.
+- A `PostToolUseFailure` block reason is appended to the V2 tool error while
+  preserving the `Tool.Error` instance.
+
 ## 0.1.1
 
 Security fix.

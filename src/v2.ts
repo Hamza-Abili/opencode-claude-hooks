@@ -391,7 +391,18 @@ export async function setup(
     if (result.decision.stop) {
       await ctx.session.interrupt({ sessionID, resume: false }).catch(() => undefined);
     }
-    if (!completed) return;
+    if (!completed) {
+      if (result.decision.blocked) {
+        // Keep the Tool.Error instance: the V2 core yields it as an Effect
+        // error, so replacing it with a plain object breaks the contract.
+        const error = object(event.error);
+        const current = stringField(error, "message");
+        const reason = result.decision.reason ?? "blocked by Claude Code hook";
+        error.message = current === undefined ? reason : `${current}\n\n${reason}`;
+        event.error = error;
+      }
+      return;
+    }
     const toolResult = object(event.result);
     if (result.decision.stop) {
       event.result = {

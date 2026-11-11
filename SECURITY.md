@@ -64,6 +64,10 @@ user can read.
 - Stop-hook continuations are capped (`maxStopContinuations`, default 3).
 - Hook output is parsed as JSON; invalid JSON is a non-blocking error, never a
   silent allow.
+- Prompt hooks use Claude's native `{ok, reason, impossible}` schema. `ok: false`
+  rejects the event; `Stop`/`SubagentStop` allow the stop when `impossible` is
+  true. Malformed or unrecognized prompt responses are errors, never silent
+  allows.
 - A hook that fails is non-blocking unless `onFailure: "block"` is set. A
   blocking policy applies to any command exit other than 0 or 2, even when the
   hook printed JSON.
