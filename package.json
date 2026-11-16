@@ -58,6 +58,8 @@
     "build": "bun run scripts/build.ts",
     "ci": "bun run lint && bun run typecheck && bun run test && bun run smoke",
     "smoke": "bun run scripts/build.ts && bun run scripts/smoke.ts",
+    "compat-smoke": "bun scripts/compat.ts",
+    "compat": "bun run ci && bun run compat-smoke",
     "prepack": "bun run build"
   },
   "devDependencies": {

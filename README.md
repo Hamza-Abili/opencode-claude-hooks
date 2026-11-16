@@ -262,7 +262,12 @@ not control.
 bun install
 bun run ci        # biome + tsc + tests + build + smoke
 bun run smoke     # doctor against a temporary fixture
+bun run compat    # ci + live smoke against a real OpenCode binary
 ```
+
+`bun run compat` starts an ephemeral `opencode serve` in an isolated
+HOME/XDG, so it needs an OpenCode binary on `PATH` (`OPENCODE_BIN=/path`
+overrides it) and no model or API key.
 
 The repository has no runtime dependencies. The plugin runs inside OpenCode's
 Bun runtime; the published CLI is a Node-compatible bundle. If Bun is present,
