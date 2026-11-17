@@ -11,6 +11,8 @@
     "opencode-v1",
     "opencode-v2",
     "claude-code",
+    "claude-hooks",
+    "claude-code-hooks",
     "claude",
     "hooks",
     "hook",
